@@ -10,7 +10,7 @@ import (
 	"gitlab.utc.fr/milairhu/ia04-api-rest/restagent/endpoints"
 )
 
-// Fonctions qui réalisent l'appel à l'API REST pour voter :
+// Functions for making REST API calls to vote:
 // http://localhost:8080/new_ballot
 
 func (rca *RestClientBallotAgent) treatResponseNewBallot(r *http.Response) (resp restagent.ResponseNewBallot, err error) {
@@ -24,19 +24,19 @@ func (rca *RestClientBallotAgent) treatResponseNewBallot(r *http.Response) (resp
 
 func (rca *RestClientBallotAgent) doRequestNewBallot(req restagent.RequestNewBallot) (res restagent.ResponseNewBallot, err error) {
 
-	// sérialisation de la requête
+	// Serialize the request
 	url := rca.url + endpoints.NewBallot
 	data, err := json.Marshal(req)
 	if err != nil {
-		return res, fmt.Errorf("/new_ballot. error by %s in /new_ballot while marshalling request: %s", rca.Id, err.Error())
+		return res, fmt.Errorf("/new_ballot. Error by %s in /new_ballot while marshalling request: %s", rca.Id, err.Error())
 	}
 
-	// envoi de la requête
+	// Send the request
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 
-	// traitement de la réponse
+	// Handle the response
 	if err != nil {
-		return res, fmt.Errorf("/new_ballot. error by %s in /new_ballot while sending request: %s", rca.Id, err.Error())
+		return res, fmt.Errorf("/new_ballot. Error by %s in /new_ballot while sending request: %s", rca.Id, err.Error())
 	}
 	if resp.StatusCode != http.StatusCreated {
 
@@ -44,7 +44,7 @@ func (rca *RestClientBallotAgent) doRequestNewBallot(req restagent.RequestNewBal
 	}
 	res, err = rca.treatResponseNewBallot(resp)
 	if err != nil {
-		return res, fmt.Errorf("/new_ballot. error by %s in /new_ballot while treating response: %s", rca.Id, err.Error())
+		return res, fmt.Errorf("/new_ballot. Error by %s in /new_ballot while treating response: %s", rca.Id, err.Error())
 	}
 
 	return

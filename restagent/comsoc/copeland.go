@@ -5,19 +5,19 @@ import (
 )
 
 /*
-* Règle de Copeland
-* Le meilleur candidat est celui qui bat le plus d’autres candidats
-* On associe à chaque candidat a le score suivant :
-* pour chaque autre candidat b!= a
-* +1 si une majorité préfère a à b,
-* −1 si une majorité préfère b à a et
-* 0 sinon
-* Le candidat élu est celui qui a le plus haut score de Copeland
+* Copeland Rule
+* The best candidate is the one who beats the most other candidates
+* We associate the following score with each candidate a:
+* for each other candidate b!= a
+* +1 if a majority prefers a to b,
+* −1 if a majority prefers b to a, and
+* 0 otherwise
+* The elected candidate is the one with the highest Copeland score
  */
 func winCopelandDuel(p Profile, alt1 Alternative, alt2 Alternative) (int, error) {
 	ok := checkProfile(p)
 	if ok != nil {
-		return -2, errors.New("profil non valide")
+		return -2, errors.New("invalid profile")
 	}
 	var i int = 0
 	var nbWin = 0
@@ -66,8 +66,8 @@ func CopelandSWF(p Profile) (Count, error) {
 		}
 	}
 	return resMap, nil
-
 }
+
 func CopelandSCF(p Profile) (bestAlts []Alternative, err error) {
 	count, err := CopelandSWF(p)
 	if err != nil {

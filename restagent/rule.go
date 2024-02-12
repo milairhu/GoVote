@@ -1,6 +1,6 @@
 package restagent
 
-//Ensemble des règles de vote prises en compte par l'application
+//Set of rules considered for the voting system
 
 const Approval = "approval"
 const Borda = "borda"

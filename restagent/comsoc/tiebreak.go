@@ -6,26 +6,25 @@ import (
 
 ///// Tie breakers
 /**
- * En cas d'égalité, les SCF doivent renvoyer un seul élement
- * et les SWF doivent renvoyer un ordre total sans égalité.
- * On utilisera pour cela des fonctions de tie-break qui
- * étant donné un ensemble d'alternatives, renvoie la meilleure.
- * Elles respectent la signature suivante
- * (une erreur pouvant se produire si le slice d'alternatives est
- * vide) :
+ * In case of ties, the SCFs must return a single element
+ * and the SWFs must return a total order without ties.
+ * For this purpose, tie-breaking functions are used
+ * which, given a set of alternatives, return the best one.
+ * They respect the following signature
+ * (an error may occur if the slice of alternatives is empty):
 **/
-func TieBreakFactory(ordreStrict []Alternative) func([]Alternative) (Alternative, error) {
-	//Les alternatives fournies servent à départager les ex aequo -> ordre strict
+func TieBreakFactory(strictOrder []Alternative) func([]Alternative) (Alternative, error) {
+	// The provided alternatives are used to break ties -> strict order
 	return func(alts []Alternative) (Alternative, error) {
-		//On considère que les alternatives fournies sont de bases toutes à égalité
+		// We assume that the provided alternatives are initially tied
 		if len(alts) == 0 {
-			return -1, errors.New("aucune alternative fournie")
+			return -1, errors.New("no alternatives provided")
 		} else {
-			order := make(map[Alternative]int, len(ordreStrict))
-			for i, alt := range ordreStrict {
-				order[alt] = len(ordreStrict) - i
+			order := make(map[Alternative]int, len(strictOrder))
+			for i, alt := range strictOrder {
+				order[alt] = len(strictOrder) - i
 			}
-			//le map order contient les alternatives associées à leur rang
+			// The order map contains the alternatives associated with their rank
 			var maxVal int
 			var maxAlt Alternative
 			for _, alt := range alts {
@@ -39,26 +38,26 @@ func TieBreakFactory(ordreStrict []Alternative) func([]Alternative) (Alternative
 	}
 }
 
-// Pour avoir des SWF sans ex aequo
+// To obtain SWFs without ties
 func SWFFactory(swf func(p Profile) (Count, error), tieBreaker func([]Alternative) (Alternative, error)) func(Profile) ([]Alternative, error) {
-	//Retourne une fonction qui retourne les alternatives ordonnées
+	// Returns a function that returns the ordered alternatives
 	return func(p Profile) ([]Alternative, error) {
 		count, err := swf(p)
 		if err != nil {
 			return nil, err
 		}
 		res := make([]Alternative, len(count))
-		// On remplit res avec les alternatives : plus count[alt] est grand, plus alt est bien classée
+		// We fill res with the alternatives: the higher count[alt] is, the higher alt is ranked
 
-		//Idée du prof : on multiplie toutes les alternatives par
-		//nbAlt, et pour chaque alternative ex aequo,
-		//on fait +1, +2 etc pour départager
-		// -> ici, on fait pas ça
-		invCount := make(map[int][]Alternative, len(count)) //dico {score : [candidats]}
+		// Professor's idea: we multiply all the alternatives by
+		// nbAlt, and for each tied alternative,
+		// we do +1, +2 etc to differentiate
+		// -> here, we don't do that
+		invCount := make(map[int][]Alternative, len(count)) // dict {score: [candidates]}
 		var maxScore int
 		var minScore int
 		for alt, score := range count {
-			//On remplit le dictionnaire invCount et on enregistre les scores max et min
+			// We fill the invCount dictionary and record the max and min scores
 			invCount[score] = append(invCount[score], alt)
 			if score > maxScore {
 				maxScore = score
@@ -71,20 +70,20 @@ func SWFFactory(swf func(p Profile) (Count, error), tieBreaker func([]Alternativ
 		for i := maxScore; i >= minScore; i-- {
 			tab, ok := invCount[i]
 			if ok {
-				//Si on a des candidats correspondant à ce score,
-				//on les trie en fonction du tiebreak et on les ajoute
-				//au tableau res
+				// If we have candidates corresponding to this score,
+				// we sort them according to the tiebreaker and add them
+				// to the res array
 				for len(tab) > 1 {
-					//tant qu'il y a plusieurs éléments égalité,
-					//on retire le meilleur de la liste
-					//et on l'ajoute à res
+					// as long as there are multiple tied elements,
+					// we remove the best one from the list
+					// and add it to res
 					best, err := tieBreaker(tab)
 					if err != nil {
 						return nil, err
 					}
 					res[currIndex] = best
 					currIndex++
-					//On supprime l'élément de tab
+					// We remove the element from tab
 					for i, alt := range tab {
 						if alt == best {
 							tab[i] = tab[len(tab)-1]
@@ -94,7 +93,7 @@ func SWFFactory(swf func(p Profile) (Count, error), tieBreaker func([]Alternativ
 					}
 				}
 				if len(tab) == 1 {
-					//On ajoute le dernier élément au tableau
+					// We add the last element to the array
 					res[currIndex] = tab[0]
 					currIndex++
 				}
@@ -104,35 +103,35 @@ func SWFFactory(swf func(p Profile) (Count, error), tieBreaker func([]Alternativ
 	}
 }
 func SCFFactory(scf func(p Profile) ([]Alternative, error), tieBreaker func([]Alternative) (Alternative, error)) func(Profile) (Alternative, error) {
-	//Applique la fonction scf sur le profile puis départage les ex aequo avec tieBreaker. Renvoie la fonction qui applique scf mais sans ex aequo
+	// Applies the scf function on the profile then breaks ties with tieBreaker. Returns the function that applies scf but without ties
 	return func(p Profile) (Alternative, error) {
 		bestAlts, err := scf(p)
 		if err != nil {
 			return -1, err
 		}
-		//On a les meilleures alternatives. On utilise tiebreaker pour départager
+		// We have the best alternatives. We use tiebreaker to break ties
 		return tieBreaker(bestAlts)
 	}
 }
 
-// Remarque : obligé de créer une fonction SWF avec Tie-break particulière pour approval car il faut prendre en compte le seuil
+// Note: it is necessary to create a specific SWF function with a particular Tie-break for approval because the threshold must be taken into account
 func MakeApprovalRankingWithTieBreak(p Profile, threshold []int, tieBreaker func([]Alternative) (Alternative, error)) ([]Alternative, error) {
 	count, err := ApprovalSWF(p, threshold)
 	if err != nil {
 		return nil, err
 	}
 	res := make([]Alternative, len(count))
-	// On remplit res avec les alternatives : plus count[alt] est grand, plus alt est bien classée
+	// We fill res with the alternatives: the higher count[alt] is, the higher alt is ranked
 
-	//Idée du prof : on multiplie toutes les alternatives par
-	//nbAlt, et pour chaque alternative ex aequo,
-	//on fait +1, +2 etc pour départager
-	// -> ici, on fait pas ça
-	invCount := make(map[int][]Alternative, len(count)) //dico {score : [candidats]}
+	// Professor's idea: we multiply all the alternatives by
+	// nbAlt, and for each tied alternative,
+	// we do +1, +2 etc to differentiate
+	// -> here, we don't do that
+	invCount := make(map[int][]Alternative, len(count)) // dict {score: [candidates]}
 	var maxScore int
 	var minScore int
 	for alt, score := range count {
-		//On remplit le dictionnaire invCount et on enregistre les scores max et min
+		// We fill the invCount dictionary and record the max and min scores
 		invCount[score] = append(invCount[score], alt)
 		if score > maxScore {
 			maxScore = score
@@ -145,20 +144,20 @@ func MakeApprovalRankingWithTieBreak(p Profile, threshold []int, tieBreaker func
 	for i := maxScore; i >= minScore; i-- {
 		tab, ok := invCount[i]
 		if ok {
-			//Si on a des candidats correspondant à ce score,
-			//on les trie en fonction du tiebreak et on les ajoute
-			//au tableau res
+			// If we have candidates corresponding to this score,
+			// we sort them according to the tiebreaker and add them
+			// to the res array
 			for len(tab) > 1 {
-				//tant qu'il y a plusieurs éléments égalité,
-				//on retire le meilleur de la liste
-				//et on l'ajoute à res
+				// as long as there are multiple tied elements,
+				// we remove the best one from the list
+				// and add it to res
 				best, err := tieBreaker(tab)
 				if err != nil {
 					return nil, err
 				}
 				res[currIndex] = best
 				currIndex++
-				//On supprime l'élément de tab
+				// We remove the element from tab
 				for i, alt := range tab {
 					if alt == best {
 						tab[i] = tab[len(tab)-1]
@@ -168,7 +167,7 @@ func MakeApprovalRankingWithTieBreak(p Profile, threshold []int, tieBreaker func
 				}
 			}
 			if len(tab) == 1 {
-				//On ajoute le dernier élément au tableau
+				// We add the last element to the array
 				res[currIndex] = tab[0]
 				currIndex++
 			}
@@ -178,33 +177,36 @@ func MakeApprovalRankingWithTieBreak(p Profile, threshold []int, tieBreaker func
 
 }
 
-// Remarque : obligé de créer une fonction SWF avec Tie-break particulière pour STV car le départage est différent. On utilise le Tie-Break au sein même de l'algorithme
+// Note: We need to create a specific SWF function with a tie-break for STV because the tie-breaking process is different. We use the tie-break within the algorithm itself.
 func STV_SWF_TieBreak(p Profile, tieBreak []Alternative) ([]Alternative, error) {
+	// Check if the profile is valid
 	ok := checkProfile(p)
 	if ok != nil {
 		return nil, ok
 	}
-	copyP := make(Profile, len(p)) //On copie le profil pour pouvoir faire des suppressions sans affecter l'original
+
+	// Create a copy of the profile to avoid modifying the original
+	copyP := make(Profile, len(p))
 	for i, votant := range p {
 		copyP[i] = make([]Alternative, len(votant))
 		copy(copyP[i], votant)
 	}
 
-	//Map pour associer chaque valeur à sa position dans le tie-break
+	// Create a map to associate each value with its position in the tie-break
 	tieBreakMap := make(map[Alternative]int, len(tieBreak))
 	for i, alt := range tieBreak {
 		tieBreakMap[alt] = len(tieBreak) - i - 1
 	}
 
+	// Initialize the result map
 	resMap := make(Count, len(p[0]))
-	//on initialise le map à 0
 	for _, alt := range copyP[0] {
 		resMap[alt] = 0
 	}
 
+	// Perform the STV process
 	for nbToursRestants := len(copyP[0]) - 1; nbToursRestants > 0; nbToursRestants-- {
-		//On fait le tour on compte les voix
-		//On élimine le plus mauvais candidat
+		// Count the votes for each alternative and eliminate the worst candidate
 
 		comptMap := make(Count, len(copyP[0]))
 		for _, alt := range copyP[0] {
@@ -218,7 +220,7 @@ func STV_SWF_TieBreak(p Profile, tieBreak []Alternative) ([]Alternative, error) 
 				comptMap[votant[0]] = 1
 			}
 		}
-		//On a les scores de tous pour ce tour
+		// Get the scores for this round
 		var miniCount int = len(copyP) + 1
 		miniAlts := make([]Alternative, 0)
 		for alt, count := range comptMap {
@@ -229,7 +231,7 @@ func STV_SWF_TieBreak(p Profile, tieBreak []Alternative) ([]Alternative, error) 
 				miniAlts = append(miniAlts, alt)
 			}
 		}
-		//On a les plus mauvais candidats, on en vire un des votes selon le Tie-break fourni
+		// Get the worst candidates and eliminate one based on the provided tie-break
 		var miniAlt Alternative
 		miniValInTieBreak := len(tieBreak) + 1
 		for _, alt := range miniAlts {
@@ -238,7 +240,7 @@ func STV_SWF_TieBreak(p Profile, tieBreak []Alternative) ([]Alternative, error) 
 				miniAlt = alt
 			}
 		}
-		//On a désigné le candidat dont il faut se débarasser, on le supprime de tous les votes
+		// Eliminate the selected candidate from all votes
 		for indP, votant := range copyP {
 			var found bool
 			for i, alt := range votant {
@@ -251,14 +253,14 @@ func STV_SWF_TieBreak(p Profile, tieBreak []Alternative) ([]Alternative, error) 
 			}
 			copyP[indP] = votant[:len(votant)-1]
 		}
-		//on incrémente chaque candidat passant au tour suivant
+		// Increment the score of each candidate passing to the next round
 		for _, alt := range copyP[0] {
 			if alt != miniAlt {
 				resMap[alt]++
 			}
 		}
 	}
-	//on crée un slice d'alternatives rangée grâces aux valeurs du Map
+	// Create a slice of alternatives ordered according to the result map
 	res := make([]Alternative, len(resMap))
 	for alt, score := range resMap {
 		res[len(resMap)-1-score] = alt

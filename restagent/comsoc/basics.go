@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-// renvoie l'indice ou se trouve alt dans prefs
+// Returns the index where alt is found in prefs
 func rank(alt Alternative, prefs []Alternative) int {
 	for i, a := range prefs {
 		if a == alt {
@@ -14,9 +14,8 @@ func rank(alt Alternative, prefs []Alternative) int {
 	return -1
 }
 
-// renvoie vrai ssi alt1 est préférée à alt2
+// Returns true if alt1 is preferred to alt2
 func isPref(alt1, alt2 Alternative, prefs []Alternative) bool {
-	//return rank(alt1, prefs) < rank(alt2, prefs)
 	for _, a := range prefs {
 		if a == alt1 {
 			return true
@@ -28,10 +27,8 @@ func isPref(alt1, alt2 Alternative, prefs []Alternative) bool {
 	return false
 }
 
-// renvoie les meilleures alternatives pour un décompte donné
+// Returns the best alternatives for a given count
 func maxCount(count Count) (bestAlts []Alternative) {
-	//Si j'ai bien compris : retourner la ou les clés du map ayant les meilleurs valeurs
-	//Etape 1 : parcourt pour cerner la meilleure valeur et enregistrement des meilleurs dans le tableau res
 	var maxi = 0
 	for i, v := range count {
 		if v > maxi {
@@ -44,26 +41,24 @@ func maxCount(count Count) (bestAlts []Alternative) {
 	return
 }
 
-// vérifie le profil donné, par ex. qu'ils sont tous complets et que chaque alternative n'apparaît qu'une seule fois par préférences
+// Checks the given profile, e.g., that they are all complete and each alternative appears only once per preference
 func checkProfile(prefs Profile) error {
 	if len(prefs) < 1 {
-		return errors.New("aucun vote n'a été soumis")
+		return errors.New("no votes submitted")
 	}
 	if len(prefs[0]) < 2 {
-		return errors.New("moins de 2 candidats")
+		return errors.New("less than 2 candidates")
 	}
-	//Etape 1 : vérification de la complétude
 	for _, v := range prefs {
 		if len(v) != len(prefs[0]) {
-			return errors.New("le profil n'est pas complet")
+			return errors.New("profile is not complete")
 		}
 	}
-	//Etape 2 : vérification de l'unicité des alternatives
 	for _, v := range prefs {
 		for i, a := range v {
 			for j, b := range v {
 				if i != j && a == b {
-					return errors.New("le profil n'est pas correct")
+					return errors.New("profile is not correct")
 				}
 			}
 		}
@@ -71,19 +66,15 @@ func checkProfile(prefs Profile) error {
 	return nil
 }
 
-// vérifie le profil donné, par ex. qu'ils sont tous complets et que chaque alternative de alts apparaît exactement une fois par préférences
+// Checks the given profile, e.g., that they are all complete and each alternative of alts appears exactly once per preference
 func checkProfileAlternative(prefs Profile, alts []Alternative) error {
-	//Etape 1 :vérifie profil
 	err := checkProfile(prefs)
 	if err != nil {
 		return err
 	}
 
-	//Etape 2 : vérifie que chaque alternative de alts apparaît exactement une fois par préférences
 	for _, prof := range prefs {
-		//Pour chaque profil
 		for _, a := range alts {
-			//Pour chaqe alternative de alts
 			var isPresent = false
 			for _, b := range prof {
 				if a == b {
@@ -91,7 +82,7 @@ func checkProfileAlternative(prefs Profile, alts []Alternative) error {
 				}
 			}
 			if !isPresent {
-				return errors.New("le profil n'est pas correct : il manque une alternative")
+				return errors.New("profile is not correct: a alternative is missing")
 			}
 		}
 	}

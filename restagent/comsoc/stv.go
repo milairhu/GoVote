@@ -1,36 +1,33 @@
 package comsoc
 
 /*
-* Vote Simple Transférable (Single Transferable Vote (STV)
-* Chaque individu indique donne son ordre de préférence
-* Pour n candidats, on fait n−1 tours
-* (à moins d’avoir avant une majorité stricte pour un candidat)
-* On suppose qu’à chaque tour chaque individu “vote” pour son candidat
-* préféré (parmi ceux encore en course)
-* À chaque tour on élimine le plus mauvais candidat
-* (celui qui a le moins de voix)
+* Single Transferable Vote (STV)
+* Each individual gives their preference order
+* For n candidates, we have n−1 rounds
+* (unless a strict majority for one candidate is reached earlier)
+* We assume that in each round each individual "votes" for their preferred candidate
+* (among those still in the race)
+* In each round, the candidate with the fewest votes is eliminated
  */
-//Le map fait +1 à chaque tour passé
+
 func STV_SWF(p Profile) (Count, error) {
 	ok := checkProfile(p)
 	if ok != nil {
 		return nil, ok
 	}
-	copyP := make(Profile, len(p)) //On copie le profil pour pouvoir faire des suppressions sans affecter l'original
+	copyP := make(Profile, len(p)) // We copy the profile to be able to perform deletions without affecting the original
 	for i, votant := range p {
 		copyP[i] = make([]Alternative, len(votant))
 		copy(copyP[i], votant)
 	}
 	resMap := make(Count, len(p[0]))
-	//on initialise le map à 0
+	// We initialize the map to 0
 	for _, alt := range copyP[0] {
 		resMap[alt] = 0
 	}
 
 	for nbToursRestants := len(copyP[0]) - 1; nbToursRestants > 0; nbToursRestants-- {
-		//On fait le tour on compte les voix
-		//On élimine le plus mauvais candidat
-
+		// We count the votes and eliminate the candidate with the fewest votes
 		comptMap := make(Count, len(copyP[0]))
 		for _, alt := range copyP[0] {
 			comptMap[alt] = 0
@@ -43,7 +40,7 @@ func STV_SWF(p Profile) (Count, error) {
 				comptMap[votant[0]] = 1
 			}
 		}
-		//On a les scores de tous pour ce tour
+		// We have the scores for each candidate for this round
 		var miniCount int = len(copyP) + 1
 		var miniAlt Alternative
 		for alt, count := range comptMap {
@@ -52,7 +49,7 @@ func STV_SWF(p Profile) (Count, error) {
 				miniAlt = alt
 			}
 		}
-		//On a le plus mauvais candidat, on le vire des votes
+		// We eliminate the candidate with the fewest votes from the votes
 		for indP, votant := range copyP {
 			for i, alt := range votant {
 				if alt == miniAlt {
@@ -61,7 +58,7 @@ func STV_SWF(p Profile) (Count, error) {
 			}
 			copyP[indP] = votant[:len(votant)-1]
 		}
-		//on incrémente chaque candidat passant au tour suivant
+		// We increment
 		for _, alt := range copyP[0] {
 			if alt != miniAlt {
 				resMap[alt]++

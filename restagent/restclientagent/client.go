@@ -8,21 +8,21 @@ import (
 	"gitlab.utc.fr/milairhu/ia04-api-rest/restagent"
 )
 
-/******************  Corps d'un agent client ******************/
+/******************  Client Agent Body ******************/
 type RestClientAgentBase struct {
-	Id   string          //id de l'agent
-	url  string          //url du serveur
-	cin  <-chan []string //channel pour recevoir la liste des scrutins
-	cout chan<- string   //channel pour communiquer le nom de son scrutin
+	Id   string          // Agent ID
+	url  string          // Server URL
+	cin  <-chan []string // Channel to receive list of ballots
+	cout chan<- string   // Channel to communicate the name of its ballot
 }
 
-/******************  Agent créant un scrutin et calculant le résultat ******************/
+/******************  Agent Creating a Ballot and Calculating Result ******************/
 type RestClientBallotAgent struct {
-	RestClientAgentBase                            //attributs de base d'un agent client
-	ReqNewBallot        restagent.RequestNewBallot //requête pour créer un nouveau scrutin
+	RestClientAgentBase                            // Basic client agent attributes
+	ReqNewBallot        restagent.RequestNewBallot // Request for creating a new ballot
 }
 
-// Constructeur d'un agent créant un scrutin
+// Constructor for an agent creating a ballot
 func NewRestClientBallotAgent(id string, url string, reqNewBallot restagent.RequestNewBallot, cin <-chan []string, cout chan<- string) *RestClientBallotAgent {
 	return &RestClientBallotAgent{
 		RestClientAgentBase{id, url, cin, cout},
@@ -30,42 +30,39 @@ func NewRestClientBallotAgent(id string, url string, reqNewBallot restagent.Requ
 	}
 }
 
-// Méthode principale de l'Agent créant un scrutin
+// Main method of the ballot creating agent
 func (rcba *RestClientBallotAgent) Start() {
-	//log.Printf("démarrage de l'agent pour la création d'un scrutin %s...", rcba.id)
-
-	// Etape 1: Création du scrutin
+	// Step 1: Creating the ballot
 	createdBallot, err := rcba.doRequestNewBallot(rcba.ReqNewBallot)
 	if err != nil {
-		log.Printf(rcba.Id, " error: ", err.Error()) //Remarque : on ne fait pas appel à log.Fatal car on veut que l'agent continue de fonctionner pour réaliser ses tâches
+		log.Printf(rcba.Id, " error: ", err.Error())
 	} else {
-		//log.Printf("/new_Ballot par [%s] créé avec succes : %s\n", rcba.id, createdBallot.BallotId)
+		// log.Printf("/new_Ballot by [%s] created successfully: %s\n", rcba.id, createdBallot.BallotId)
 	}
-	// Etape 2: Envoie son scrutin à la goRoutine principale
+	// Step 2: Sending its ballot to the main goroutine
 	rcba.cout <- createdBallot.BallotId
 
-	// Etape 3: Attente de la fin des votes de tous les agents, signalé par la goRoutine principale
+	// Step 3: Waiting for all agents to finish voting, signaled by the main goroutine
 	<-rcba.cin
 
 	time.Sleep(6 * time.Second)
 
-	// Etape 4: Récupération du résultat de chaque scrutin
+	// Step 4: Retrieving the result of each ballot
 	res, err := rcba.doRequestResults(createdBallot.BallotId)
 	if err != nil {
-		log.Printf(rcba.Id, "error: ", err.Error()) //Remarque : on ne fait pas appel à log.Fatal car on veut que l'agent continue de fonctionner pour réaliser ses tâches
+		log.Printf(rcba.Id, "error: ", err.Error())
 	} else {
 		Affichage(createdBallot.BallotId, rcba.ReqNewBallot.Rule, len(rcba.ReqNewBallot.VoterIds), res)
 	}
 }
 
-/****************** Agent votant ******************/
+/****************** Voting Agent ******************/
 type RestClientVoteAgent struct {
-	RestClientAgentBase                       //attributs de base d'un agent client
-	ReqVote             restagent.RequestVote //requête pour voter
-
+	RestClientAgentBase                       // Basic client agent attributes
+	ReqVote             restagent.RequestVote // Request for voting
 }
 
-// Constructeur d'un agent votant
+// Constructor for a voting agent
 func NewRestClientVoteAgent(id string, url string, reqVote restagent.RequestVote, cin <-chan []string, cout chan<- string) *RestClientVoteAgent {
 	return &RestClientVoteAgent{
 		RestClientAgentBase{id, url, cin, cout},
@@ -73,31 +70,30 @@ func NewRestClientVoteAgent(id string, url string, reqVote restagent.RequestVote
 	}
 }
 
-// Méthode principale de l'Agent votant
+// Main method of the voting agent
 func (rcva *RestClientVoteAgent) Start() {
-
-	//Etape 1 : Attente de la réception de l'ensemble des scrutins envoyés par la goRoutine principale
+	// Step 1: Waiting to receive the list of ballots sent by the main goroutine
 	listBallots := <-rcva.cin
 
-	//Etape 2: Vote dans chaque scrutin
-
+	// Step 2: Voting in each ballot
 	for _, ballot := range listBallots {
-		rcva.ReqVote.BallotId = ballot //Met l'Id du scrutin dans la requête
+		rcva.ReqVote.BallotId = ballot // Set the ballot ID in the request
 		err := rcva.doRequestVote(rcva.ReqVote)
 		if err != nil {
-			log.Printf(rcva.Id, " error: ", err.Error()) //Remarque : on ne fait pas appel à log.Fatal car on veut que l'agent continue de fonctionner pour réaliser ses tâches
+			log.Printf(rcva.Id, " error: ", err.Error())
 		}
 	}
-	//Etape 3 : Envoie un message à la goRoutine principale pour signifier qu'il a terminé
+	// Step 3: Sending a message to the main goroutine to indicate completion
 	rcva.cout <- "fin"
 }
 
+// Display results
 func Affichage(id string, rule string, nbVoters int, res restagent.ResponseResult) {
 	if rule != "condorcet" {
-		fmt.Printf("=============================== RÉSULTATS POUR LE SCRUTIN %s ===============================\nTYPE DE SCRUTIN : %s\nNOMBRE DE VOTANTS : %d\nGAGNANT : %d\nCLASSEMENT : %v\n",
+		fmt.Printf("=============================== RESULTS FOR BALLOT %s ===============================\nBALLOT TYPE: %s\nNUMBER OF VOTERS: %d\nWINNER: %d\nRANKING: %v\n",
 			id, rule, nbVoters, res.Winner, res.Ranking)
 	} else {
-		fmt.Printf("=============================== RÉSULTATS POUR LE SCRUTIN %s ===============================\nTYPE DE SCRUTIN : %s\nNOMBRE DE VOTANTS : %d\nGAGNANT : %d\n",
+		fmt.Printf("=============================== RESULTS FOR BALLOT %s ===============================\nBALLOT TYPE: %s\nNUMBER OF VOTERS: %d\nWINNER: %d\n",
 			id, rule, nbVoters, res.Winner)
 	}
 }

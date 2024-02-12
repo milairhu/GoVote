@@ -2,11 +2,10 @@ package comsoc
 
 import "errors"
 
-//Est-ce qu'on gagne si on est égalité?
 func winDuel(p Profile, alt1 Alternative, alt2 Alternative) (bool, error) {
 	ok := checkProfile(p)
 	if ok != nil {
-		return false, errors.New("profil non valide")
+		return false, errors.New("invalid profile")
 	}
 
 	var i int = 0
@@ -20,33 +19,33 @@ func winDuel(p Profile, alt1 Alternative, alt2 Alternative) (bool, error) {
 		}
 		i = 0
 	}
-	return nbWin > len(p)-nbWin, nil //Voir si inégalité stricte ou pas
+	return nbWin > len(p)-nbWin, nil
 }
 
-//Donne le gagnant de Codorcet ou nil si il n'y en a pas
+// Gives the Condorcet winner or nil if there is none
 func CondorcetWinner(p Profile) (bestAlts []Alternative, err error) {
 	ok := checkProfile(p)
 	if ok != nil {
-		return nil, errors.New("Profile non valide")
+		return nil, errors.New("invalid profile")
 	}
-	var m int = len(p[0]) //nb alternatives
-	var n int = len(p)    //nb individus
+	var m int = len(p[0]) // number of alternatives
+	var n int = len(p)    // number of individuals
 
-	//Cas particuliers
+	// Special cases
 	if m == 1 {
-		//Si une seule alternative
+		// If only one alternative
 		bestAlts = []Alternative{p[0][0]}
 		return bestAlts, nil
 	}
 	if n == 1 {
-		//Si un seul individu
+		// If only one individual
 		return []Alternative{p[0][0]}, nil
 	}
 
-	//Cas général
-	//On fait tous les duels. On voit si un gagne tous ses duels.
-	//Si oui, c'est le gagnant de Condorcet
-	//Si non, il n'y a pas de gagnant de Condorcet
+	// General case
+	// We do all the duels. We see if one wins all its duels.
+	// If yes, it's the Condorcet winner
+	// If not, there is no Condorcet winner
 	var i int = 0
 	var j int = 0
 	for i = 0; i < m; i++ {
