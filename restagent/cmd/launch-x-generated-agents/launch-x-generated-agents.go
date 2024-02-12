@@ -12,11 +12,11 @@ func main() {
 	var nbBallot int
 	var nbAlts int
 
-	fmt.Println("Combien d'agents votants?")
+	fmt.Println("How many voting agents ?")
 	fmt.Scanln(&nbAgents)
-	fmt.Println("Combien de scrutins ?")
+	fmt.Println("How many ballots ?")
 	fmt.Scanln(&nbBallot)
-	fmt.Println("Combien d'alternatives ?")
+	fmt.Println("How many alternatives ?")
 	fmt.Scanln(&nbAlts)
 
 	instances.LaunchAgents(nbBallot, nbAgents, nbAlts, instances.InitVotingAgents)

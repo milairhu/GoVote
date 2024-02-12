@@ -3,8 +3,8 @@ package main
 import "gitlab.utc.fr/milairhu/ia04-api-rest/restagent/instances"
 
 /**
-* Cette commande lance un serveur et une flotte d'agents votants
-* pour calculer les résultats de 2 scrutins Condorcet, un renvoyant 1 gagnant de Condorcet, l'autre non.
+* This command launches a server and a fleet of voting agents
+* to calculate the results of 2 Condorcet polls, one returning a Condorcet winner, the other not.
 **/
 
 func main() {

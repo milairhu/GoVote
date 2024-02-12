@@ -1,6 +1,7 @@
 # Web Services REST for Voting Methods and Ballots
 
 By Hugo MILAIR, Damien VAURS
+
 2023-10-30
 
 ## Introduction

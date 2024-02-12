@@ -12,34 +12,33 @@ import (
 )
 
 /**
-* Cette commande lance un agent tenant le scrutin et un agent votant qui réalisent les commandes suivantes :
-* - POST /new_ballot : crée un scrutin
-* - POST /vote : vote pour le scrutin
-* - POST /result : récupère le résultat du scrutin
-* - Affiche le résultat.
-* Cela n'a pas grand intérêt en soit si ce n'est de tester le fonctionnement de l'API REST et la synchronisation entre agents.
-*
+* This command launches a poll creator agent and a voting agent that perform the following commands:
+* - POST /new_ballot: creates a poll
+* - POST /vote: votes for the poll
+* - POST /result: retrieves the result of the poll
+* - Displays the result.
+* This is not very useful in itself except to test the operation of the REST API and the synchronization between agents.
 **/
 
-const nbAlts = 5 //nombre d'alternatives dans les préférences
-//Remarque, on a choisit ce nombre arbitrairement
+const nbAlts = 5 //number of alternatives in the preferences
+//Note, we chose this number arbitrarily
 
 func main() {
 
-	//Création de la requête pour créer un nouveau scrutin
+	//Creating the request to create a new poll
 	reqNewBallot := restagent.RequestNewBallot{
 		Rule:     restagent.Majority,
 		Deadline: time.Now().Add(5 * time.Second).Format(time.RFC3339),
-		VoterIds: []string{"ag_vote"}, //un seul votant car on ne lance qu'un client
+		VoterIds: []string{"ag_vote"}, //only one voter because we only launch one client
 		Alts:     nbAlts,
 		TieBreak: []comsoc.Alternative{1, 2, 3, 4, 5},
 	}
 
-	//Création de la requête pour voter
+	//Creating the request to vote
 	intPref := rand.Perm(nbAlts)
 	altPref := make([]comsoc.Alternative, nbAlts)
 	for i := 0; i < nbAlts; i++ {
-		//conversion en []Alternative
+		//conversion to []Alternative
 		altPref[i] = comsoc.Alternative(intPref[i] + 1)
 	}
 	reqVote := restagent.RequestVote{
@@ -49,39 +48,39 @@ func main() {
 		Options:  nil,
 	}
 
-	//Création des canaux cin et cout
-	listChannelsIn := make([]chan []string, 2) //Communication vers les agents
-	channelOut := make(chan string)            //Communication des agents vers la goroutine principale
+	//Creating the cin and cout channels
+	listChannelsIn := make([]chan []string, 2) //Communication to the agents
+	channelOut := make(chan string)            //Communication from the agents to the main goroutine
 
 	listChannelsIn[0] = make(chan []string)
 	listChannelsIn[1] = make(chan []string)
-	//Lancement des agents
+	//Launching the agents
 	agScrutin := restclientagent.NewRestClientBallotAgent("ag_scrut", endpoints.ServerHost+endpoints.ServerPort, reqNewBallot, listChannelsIn[0], channelOut)
 	agVote := restclientagent.NewRestClientVoteAgent("ag_vote", endpoints.ServerHost+endpoints.ServerPort, reqVote, listChannelsIn[1], channelOut)
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
-	//Lancement des agents
+	//Launching the agents
 
 	go func() {
-		//Lancement du créateur de scrutin
+		//Launching the poll creator
 		defer wg.Done()
 		agScrutin.Start()
 	}()
 
 	go func() {
-		//Lancement du votant
+		//Launching the voter
 		defer wg.Done()
 		agVote.Start()
 	}()
-	//Attend la réception d'un scrutin
+	//Wait for the receipt of a poll
 	ballotId := <-channelOut
-	//Envoie de la liste des scrutins (1 seul) au votant
+	//Send the list of polls (only 1) to the voter
 	listChannelsIn[1] <- []string{ballotId}
-	//Attend la réception d'un message anoncant la fin des votes
+	//Wait for the receipt of a message announcing the end of the votes
 	<-channelOut
-	//Envoie d'un message à l'agent scrutin pour lancer le calcul des résultats
+	//Send a message to the poll agent to start the calculation of the results
 	listChannelsIn[0] <- []string{""}
 	wg.Wait()
 }

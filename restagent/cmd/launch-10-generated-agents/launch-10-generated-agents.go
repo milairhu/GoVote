@@ -6,9 +6,9 @@ import (
 )
 
 /**
-* Cette commande lance un serveur et une flotte de 10 agents votants pour 8 scrutins (1 par méthode de vote et 2 témoins).
-* Leurs préférences (et leur seuil) sont générées aléatoirement.
-* Certains scrutin sont paramétrés pour provoquer des erreurs (deadline passée, deadline trop lointaine, etc.) pour tester la robustesse du système.
+* This command launches a server and a fleet of 10 voting agents for 8 polls (1 per voting method and 2 witnesses).
+* Their preferences (and their threshold) are randomly generated.
+* Some polls are set up to trigger errors (deadline passed, deadline too far away, etc.) to test the robustness of the system.
 **/
 
 func main() {
