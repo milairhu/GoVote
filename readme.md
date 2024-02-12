@@ -19,7 +19,7 @@ Without cloning the project, the different executable functions, located in the 
     go get gitlab.utc.fr/milairhu/ia04-api-rest/restagent/cmd/launch-10-generated-agents@latest
 where *launch-10-generated-agents* can be replaced by the name of any other executable cmd folder. The use of @latest is only mandatory if the active folder is not in a Go module.
 
-To run a program via *go run*, simply go to the *cmd* folder and execute the following command:
+To run a program via *go run*, simply go to the *cmd* folder, choose a folder and execute the command like follows:
 
     go run launch-10-generated-agents.go
 
