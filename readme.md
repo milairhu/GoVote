@@ -1,84 +1,94 @@
-# IA04 - API Web pour différentes méthodes de vote
+# Web Services REST for Voting Methods and Ballots
+
+By Hugo MILAIR, Damien VAURS
+2023-10-30
+
+## Introduction
+
+This project was led as part of the IA04 course at UTC, taught by Pr. Sylvain Lagrue. The goal was to create a REST API for voting methods and ballots and to test it with a set of agents. Some agents create ballots, manage them and process the result while other agents, the voters, submit their votes. Time for ballot and deadline management is also implemented.
 
 ## Installation et lancement
 
-Le projet peut être clôné depuis le dépôt git suivant :
+The project can be cloned via the following command:
 
     https://gitlab.utc.fr/milairhu/ia04-api-rest.git
 
-Sans clôner le projet, les différentes fonctions exécutables, située dans le dossieur */restagent/cmd*, peuvent être téléchargée via la commande suivante :
+Without cloning the project, the different executable functions, located in the folder /restagent/cmd, can be downloaded via the following command:
 
     go get gitlab.utc.fr/milairhu/ia04-api-rest/restagent/cmd/launch-10-generated-agents@latest
-où *launch-10-generated-agents* peut être remplacé par le nom de n'importe quel autre dossier de *cmd* exécutable.
-L'utilisation de **@latest** n'est obligatoire que si le dossier actif n'est pas dans un module Go.
+where *launch-10-generated-agents* can be replaced by the name of any other executable cmd folder. The use of @latest is only mandatory if the active folder is not in a Go module.
 
-Pour lancer un programme via *go run*, il suffit de se placer dans le dossier *cmd* et d'exécuter la commande suivante :
+To run a program via *go run*, simply go to the *cmd* folder and execute the following command:
 
     go run launch-10-generated-agents.go
 
-Pour lancer un exécutable installé via *go install*, il suffit de se placer dans le dossier *go/bin*, généralement dans le home directory, et de lancer la commande de la sorte :
+To run an executable installed via *go install*, simply navigate to the *go/bin* folder, typically in the home directory, and run the command like this:
 
     ./launch-10-generated-agents
 
-A noter qu'il se peut que le programme échoue, l'agent serveur n'arrivant pas ponctuellement à se connecter au port 8080. Il faut alors relancer le programme.
+Note that the program may fail, as the server agent occasionally fails to connect to port 8080. In this case, you need to restart the program.
 
-## Structure générale (packages)
+## General Structure (Packages)
 
-### Dossier cmd
+### cmd Folder
 
-La dossier *restagent/cmd/* regroupe tous les fichiers exécutables utilisés pour tester l'ensemble du projet. Certains de ces fichiers reprennent les exemples vus en cours.
+The *restagent/cmd/* folder contains all the executable files used to test the entire project. Some of these files revisit the examples seen in class.
 
-- *launch-10-generated-agents.go* : lance 10 agents votants générés aléatoirement, afin de tester chaque méthode de vote implémentée et quelques cas limites.
-- *launch-x-generated-agents.go* : Similaire au précédent, à la différence qu'il est demandé à l'utilisateur de fournir le nombre de votants, scrutins et alternatives. Pratique pour tester des cas de figures avec un nombre très important d'agents. Attention : aucun cas limite n'est généré (deadline déjà passée, votant qui n'a pas le droit de voter, etc). Les méthodes de vote de chaqe scrutin sont choisies aléatoirement.
-- *launch-approval.go*, *launch-condorcet.go* et *launch-stv.go* : permettent de tester la méthode par Approbation, de Condorcet et STV avec et sans besoin de tie-break, leur manipulation étant différente des autres méthodes.
-- *launch-rsagt.go* : lance un serveur REST qui gère les requêtes entrantes sur le port 8080. C'est la commande à lancer si l'utilisateur souhaite testr l'API via un outil comme Postman.
-- *launch-rcagt.go* : lance un client REST qui envoie des requêtes au serveur REST lancé précédemment. Il lance un agent créateur de scrutin et un agent votant simples.
-- les commandes dans les fichiers *launch-chap2-diapX.go* permettent de tester les exemples vus en cours.
+launch-10-generated
+
+The *restagent/cmd/* folder contains all the executable files used to test the entire project. Some of these files revisit the examples seen in class.
+
+- *launch-10-generated-agents.go*: launches 10 randomly generated voting agents to test each implemented voting method and some edge cases.
+- *launch-x-generated-agents.go*: Similar to the previous one, except that the user is asked to provide the number of voters, ballots, and alternatives. Handy for testing scenarios with a very large number of agents. Note: no edge cases are generated (expired deadline, voter not entitled to vote, etc.). The voting methods for each ballot are chosen randomly.
+- *launch-approval.go*, *launch-condorcet.go*, and *launch-stv.go*: allow testing the Approval, Condorcet, and STV methods with and without the need for tie-break, as their manipulation differs from other methods.
+- *launch-rsagt.go*: launches a REST server that handles incoming requests on port 8080. This is the command to run if the user wants to test the API via a tool like Postman.
+- *launch-rcagt.go*: launches a REST client that sends requests to the previously launched REST server. It starts a simple ballot creator agent and a voting agent.
+- The commands in the files *launch-chap2-diapX.go* allow testing the examples seen in class.
 
 ### Package comsoc
 
-Ce package (*dossier /restagent/comsoc/*) contient toutes les classes, méthodes et types relatifs à la gestion des scrutins. C'est ici que nous retrouvons les fonctions de calcul des SWF et SCF pour les méthodes de Borda, Condorcet, Copeland, etc.
+This package (*directory /restagent/comsoc/*) contains all the classes, methods, and types related to ballot management. It includes functions for calculating SWF and SCF for methods like Borda, Condorcet, Copeland, etc.
 
-On y trouve également un certain nombre de fonctions utilitaires regroupées dans le *fichier /comsoc/basics.go*.
+It also includes a number of utility functions grouped in the *file /comsoc/basics.go*.
 
-Enfin, le *fichier /comsoc/tiebreak.go* contient les fonctions de type **factory** permettant de créer des fonctions de tie-break pour les différentes méthodes. Seules les tie-breaks pour STV et Approbation ont du être implémentées à la main, leur utilisation étant différente des autres méthodes.
+Finally, the *file /comsoc/tiebreak.go* contains **factory** functions for creating tie-break functions for different methods. Only tie-breaks for STV and Approval had to be implemented manually, as their use differs from other methods.
 
 ### Package endpoints
 
-Endpoints (*dossier /restagent/endpoints/*) est un package composé d'un seul *fichier /endpoints/endpoints.go* dont le but est de définir certaines constantes utilisées dans tout le reste du projet. On y trouve les éléments pour construire les URL des requêtes HTTP.
+Endpoints (*directory /restagent/endpoints/*) is a package consisting of a single *file /endpoints/endpoints.go* whose purpose is to define certain constants used throughout the project. It contains elements for constructing URLs for HTTP requests.
 
 ### Package instances
 
-Le package instances (*dossier restagent/instances/*) contient tous les fichiers d'initialisation des exécutables du dossier *cmd*, et portent les mêmes noms que ces derniers.
+The instances package (*directory restagent/instances/*) contains all the initialization files for the executables in the cmd folder and have the same names as those executables.
 
-Les fichiers *init-....go* contiennent chacun une fonction instanciant les agents votants et gérants de scrutins pour l'exécutable associé.
+The *init-....go* files each contain a function that instantiates voting agents and ballot managers for the associated executable.
 
-Le fichier *launch-agents.go* contient l'abstraction de la fonction lançant les agents. Comme à l'origine, pour chaque exécutable, les fonctions **main** étaient à peu de choses identiques, on a décidé de les abstraires dans ce fichier.
+The *launch-agents.go* file contains the abstraction of the function launching the agents. Since originally, for each executable, the **main** functions were almost identical, it was decided to abstract them in this file.
 
 ### Package restclientagent
 
-Dans ce package (*dossier /restagent/restclientagent/*), on trouve la définition des agents côté client (votants et gérants de scrutins) ainsi que les méthodes utilisées pour réaliser les différents requêtes HTTP.
+In this package (*directory /restagent/restclientagent/*), you find the definition of client-side agents (voters and ballot managers) as well as the methods used to make various HTTP requests.
 
 ### Package restserveragent
 
-Ce package (*dossier /restagent/restserveragent/*), similaire dans sa conception au précédent, définit toutes les classes et méthodes côté serveur. Les fonctions de celui-ci permettent à l'agent serveur de communiquer avec les agents clients du package *restclientagent* via requêtes HTTP.
+This package (*directory /restagent/restserveragent/*), similar in design to the previous one, defines all the classes and methods on the server side. Its functions allow the server agent to communicate with client agents from the *restclientagent* package via HTTP requests.
 
 ## Package restagent
 
-Le package restagent, situé à la racine du projet, définit un certain nombre de types (*fichier /types.go*) et de constantes (*fichier /rule.go*) utilisées par les agents clients et serveurs.
+The restagent package, located at the root of the project, defines a number of types (*file /types.go*) and constants (*file /rule.go*) used by client and server agents.
 
-## Remarques
+## Remarks
 
-- Pour la méthode de scrutin par approbation, une nouvelle méthode de tie-break a dû être créée, afin de prendre en compte les seuils (fonction *MakeApprovalRankingWithTieBreak()* dans le fichier */comsoc/tiebreak.go*).
-- Même chose pour la méthode par STV, qui nécessite une fonction de tie-break à part car le départage se fait au sein même de la fonction de calcul du SWF, et pas après (fonction *STV_SWF_TieBreak* dans le fichier */comsoc/tiebreak.go*).
-- Lors de la création d'un scrutin, on ne fait pas appel à log.Fatal car on souhaite que l'agent continue ses tâches même si une erreur est rencontrée.
-- Le fait de vérifier la cohérence des seuils fournis au moment du calcul du résultat (fichier */restserveragent/result.go*) présente un avantage sécuritaire mais pénalise la performance, car ces seuils sont déjà vérifiés à la réception du vote.
-- On peut se poser la question de l'intérêt (ou non) de vérifier la présence d'un seuil dans le cadre d'une méthode de scrutin par approbation. Est-ce que l'absence de celui-ci est une erreur ? Ou bien cela signifie-t-il qu'on compte toutes les alternatives, ou aucune? On a décidé de considérer que l'absence de seuil est une erreur.
-- Dans le cas où aucun vote n'est soumis (fichier */restserveragent/result.go*), nous prenons la décision de retourner un résultat plutôt qu'une erreur. Ce résultat est déterminé par le tie-break fourni lors de la création du scrutin.
-- La méthode de Condorcet ne nécessite pas l'utilisation d'une fonction de gestion de tie-break. Soit il y a un unique vainqueur, soit il n'y en a pas.
-- Le nombre d'alternatives dans le *fichier /cmd/launch-rcagt.go* a été arbitrairement fixé à 5, mais est modifiable.
-- Le "profil des votants" affiché a la même forme que ceux vu en cours. La première ligne indique le nombre de votants a avoir cet ordre de préférence, indiqué par la colonne en dessous.
+- For the Approval voting method, a new tie-break method had to be created to account for thresholds (function *MakeApprovalRankingWithTieBreak()* in the file */comsoc/tiebreak.go*).
+- The same applies to the STV method, which requires a separate tie-break function because the tie-breaking occurs within the SWF calculation function itself, rather than afterwards (function *STV_SWF_TieBreak* in the file */comsoc/tiebreak.go*).
+- When creating a ballot, we do not use log.Fatal because we want the agent to continue its tasks even if an error is encountered.
+- Checking the consistency of thresholds provided at the time of result calculation (file */restserveragent/result.go*) offers security advantages but penalizes performance, as these thresholds are already checked upon receiving the vote.
+- There is a question about whether it is beneficial (or not) to check the presence of a threshold in the context of an Approval voting method. Is the absence of a threshold an error? Or does it mean that all alternatives are counted or none? It was decided to consider the absence of a threshold as an error.
+- In cases where no votes are submitted (file */restserveragent/result.go*), we decide to return a result rather than an error. This result is determined by the tie-break provided when creating the ballot.
+- The Condorcet method does not require the use of a tie-break management function. Either there is a single winner or there isn't.
+- The number of alternatives in the *file /cmd/launch-rcagt.go* was arbitrarily set to 5 but is adjustable.
+- The "voters profile" displayed has the same format as those seen in class. The first line indicates the number of voters with this preference order, indicated by the column below.
 
 Hugo MILAIR,
 Damien VAURS,
-Semestre A23, 30/10/2023
+Semester A23, 2023-10-30
